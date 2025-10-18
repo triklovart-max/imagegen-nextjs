@@ -1,176 +1,152 @@
 'use client';
 
-import { useMemo, useState } from 'react';
-
-const THEMES = [
-  'Minimalist','Nature','Café','Modern',
-  'Artsy','Cars','Islamic','European',
-  'Fantasy','East Asian','Luxury','60s Sci-Fi',
-  'Manual'
-];
-
-const RATIOS = {
-  'Story (9:16)': { w: 1080, h: 1920 },
-  'Lanskap (16:9)': { w: 1600, h: 900 },
-  'Persegi (1:1)': { w: 1024, h: 1024 },
-};
+import { useState } from 'react';
 
 export default function Home() {
-  const [file, setFile] = useState(null);
-  const [theme, setTheme] = useState('Minimalist');
-  const [manualBg, setManualBg] = useState('');
-  const [ratioKey, setRatioKey] = useState('Story (9:16)');
-  const [imgs, setImgs] = useState([]);
+  const [username, setUsername] = useState('');
+  const [followers, setFollowers] = useState('');
+  const [totalLikes, setTotalLikes] = useState('');
+  const [videos, setVideos] = useState('');
   const [loading, setLoading] = useState(false);
+  const [data, setData] = useState(null);
 
-  const filePreview = useMemo(
-    () => (file ? URL.createObjectURL(file) : null),
-    [file]
-  );
-
-  async function onGenerate() {
+  async function calc() {
     setLoading(true);
     try {
-      const payload = {
-        count: 9,
-        ratioKey,
-        theme,
-        manualBg: manualBg.trim(),
-        // NOTE: demo: kita tidak upload file beneran — cukup kirim nama file saja
-        // (kalau nanti mau real editing, baru kita kirim base64/URL ke API model).
-        hasImage: !!file,
-        fileName: file?.name || null,
-      };
-      const r = await fetch('/api/generate', {
+      const r = await fetch('/api/estimate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
+        body: JSON.stringify({
+          username: username.trim(),
+          followers: followers ? Number(followers) : undefined,
+          totalLikes: totalLikes ? Number(totalLikes) : undefined,
+          videos: videos ? Number(videos) : undefined,
+        }),
       });
-      const data = await r.json();
-      setImgs(data.images || []);
+      const j = await r.json();
+      setData(j);
     } catch (e) {
+      alert('Gagal menghitung. Coba lagi.');
       console.error(e);
-      alert('Gagal membuat gambar. Coba lagi.');
     } finally {
       setLoading(false);
     }
   }
 
+  const Card = ({ children }) => (
+    <div style={{
+      background:'#fff', border:'1px solid #e5e7eb', borderRadius:14,
+      padding:16, boxShadow:'0 6px 20px rgba(0,0,0,.05)'
+    }}>{children}</div>
+  );
+
   return (
-    <main style={{minHeight:'100vh',background:'#0b0f1a',padding:'16px'}}>
-      <div style={{maxWidth:980,margin:'0 auto',background:'#111827',border:'1px solid #222',borderRadius:16}}>
-        {/* Header */}
-        <div style={{padding:'18px 16px',borderBottom:'1px solid #222',borderTopLeftRadius:16,borderTopRightRadius:16}}>
-          <h1 style={{margin:0,color:'#c4b5fd',fontWeight:800,fontSize:22,textAlign:'center'}}>
-            AI Web Karya Prasetyo — Untuk Bahan Affiliate
-          </h1>
-          <p style={{margin:'6px 0 0',color:'#94a3b8',textAlign:'center',fontSize:13}}>
-            Mentahan foto produk affiliate
-          </p>
+    <main style={{minHeight:'100vh',background:'#f7f8fb'}}>
+      <header style={{padding:'18px 16px',textAlign:'center',background:'#111827',color:'#e5e7eb'}}>
+        <h1 style={{margin:0,fontSize:20,fontWeight:800}}>Tik Earning Calculator</h1>
+        <div style={{opacity:.8,fontSize:13,marginTop:6}}>
+          Cek estimasi komisi/earning per video + statistik dasar
         </div>
+      </header>
 
-        {/* Body */}
-        <div style={{padding:16,display:'grid',gap:16}}>
-          {/* 1. Unggah Foto */}
-          <section style={{background:'#0f1624',border:'1px solid #1f2937',borderRadius:12,padding:16}}>
-            <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:10}}>
-              <span style={{width:28,height:28,borderRadius:999,background:'#7c3aed',color:'#fff',display:'grid',placeItems:'center',fontWeight:700}}>1</span>
-              <h3 style={{margin:0,color:'#e5e7eb'}}>Unggah Foto Model</h3>
+      <section style={{maxWidth:920, margin:'16px auto', padding:'0 12px', display:'grid', gap:12}}>
+        <Card>
+          <div style={{display:'grid',gap:10}}>
+            <label style={{fontWeight:700}}>TikTok Username</label>
+            <input
+              value={username}
+              onChange={e=>setUsername(e.target.value)}
+              placeholder="@username"
+              style={{border:'1px solid #e5e7eb',borderRadius:12,padding:'12px 14px'}}
+            />
+
+            <div style={{fontSize:12,opacity:.8,marginTop:4}}>
+              (Opsional, biar hasil makin akurat)
             </div>
 
-            <label style={{display:'block',border:'1px dashed #334155',borderRadius:12,padding:16,background:'#0b1220',color:'#94a3b8',textAlign:'center',cursor:'pointer'}}>
-              {filePreview ? (
-                <img src={filePreview} alt="preview" style={{maxWidth:'100%',borderRadius:8}}/>
-              ) : (
-                <>
-                  <div style={{fontSize:14}}>Klik untuk pilih gambar (PNG/JPG/WEBP ≤5MB)</div>
-                </>
-              )}
-              <input type="file" accept="image/*" style={{display:'none'}}
-                onChange={e=>setFile(e.target.files?.[0] || null)} />
-            </label>
-          </section>
-
-          {/* 2. Tema / Manual */}
-          <section style={{background:'#0f1624',border:'1px solid #1f2937',borderRadius:12,padding:16}}>
-            <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:10}}>
-              <span style={{width:28,height:28,borderRadius:999,background:'#7c3aed',color:'#fff',display:'grid',placeItems:'center',fontWeight:700}}>2</span>
-              <h3 style={{margin:0,color:'#e5e7eb'}}>Pilih Tema Latar Belakang</h3>
+            <div style={{display:'grid',gridTemplateColumns:'repeat(3,minmax(0,1fr))',gap:10}}>
+              <input placeholder="Followers"
+                     inputMode="numeric"
+                     value={followers}
+                     onChange={e=>setFollowers(e.target.value)}
+                     style={{border:'1px solid #e5e7eb',borderRadius:12,padding:'12px 14px'}} />
+              <input placeholder="Total Likes"
+                     inputMode="numeric"
+                     value={totalLikes}
+                     onChange={e=>setTotalLikes(e.target.value)}
+                     style={{border:'1px solid #e5e7eb',borderRadius:12,padding:'12px 14px'}} />
+              <input placeholder="Total Videos"
+                     inputMode="numeric"
+                     value={videos}
+                     onChange={e=>setVideos(e.target.value)}
+                     style={{border:'1px solid #e5e7eb',borderRadius:12,padding:'12px 14px'}} />
             </div>
 
-            <div style={{display:'grid',gridTemplateColumns:'repeat(4, minmax(0,1fr))',gap:8}}>
-              {THEMES.map(t=>(
-                <button key={t} onClick={()=>setTheme(t)}
-                  style={{
-                    padding:'10px 12px',borderRadius:10,border:'1px solid',
-                    borderColor: theme===t ? '#7c3aed' : '#1f2937',
-                    background: theme===t ? '#1f1330' : '#0b1220',
-                    color:'#e5e7eb',fontSize:13
-                  }}>
-                  {t}
-                </button>
-              ))}
-            </div>
-
-            {theme==='Manual' && (
-              <div style={{marginTop:12}}>
-                <label style={{color:'#cbd5e1',fontSize:13,fontWeight:600}}>Prompt Latar Belakang Manual</label>
-                <textarea
-                  value={manualBg}
-                  onChange={e=>setManualBg(e.target.value)}
-                  placeholder="Contoh: sebuah pantai tropis saat matahari terbenam dengan pasir putih dan pohon kelapa"
-                  style={{width:'100%',minHeight:90,marginTop:6,border:'1px solid #334155',borderRadius:12,padding:10,background:'#0b1220',color:'#e5e7eb'}}
-                />
-              </div>
-            )}
-          </section>
-
-          {/* 3. Rasio */}
-          <section style={{background:'#0f1624',border:'1px solid #1f2937',borderRadius:12,padding:16}}>
-            <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:10}}>
-              <span style={{width:28,height:28,borderRadius:999,background:'#7c3aed',color:'#fff',display:'grid',placeItems:'center',fontWeight:700}}>3</span>
-              <h3 style={{margin:0,color:'#e5e7eb'}}>Pilih Aspek Rasio</h3>
-            </div>
-            <div style={{display:'grid',gridTemplateColumns:'repeat(3, minmax(0,1fr))',gap:8}}>
-              {Object.keys(RATIOS).map(k=>(
-                <button key={k} onClick={()=>setRatioKey(k)}
-                  style={{
-                    padding:'12px',borderRadius:10,border:'1px solid',
-                    borderColor: ratioKey===k ? '#7c3aed' : '#1f2937',
-                    background: ratioKey===k ? '#1f1330' : '#0b1220',
-                    color:'#e5e7eb',fontSize:13
-                  }}>
-                  {k}
-                </button>
-              ))}
-            </div>
-          </section>
-
-          {/* 4. Generate */}
-          <section style={{background:'#0f1624',border:'1px solid #1f2937',borderRadius:12,padding:16}}>
-            <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:10}}>
-              <span style={{width:28,height:28,borderRadius:999,background:'#7c3aed',color:'#fff',display:'grid',placeItems:'center',fontWeight:700}}>4</span>
-              <h3 style={{margin:0,color:'#e5e7eb'}}>Hasilkan Gambar</h3>
-            </div>
-
-            <button onClick={onGenerate} disabled={loading}
-              style={{width:'100%',padding:'14px 16px',borderRadius:12,border:0,
-                      background:'#7c3aed',color:'#fff',fontWeight:700,opacity:loading?0.7:1}}>
-              {loading ? 'Memproses…' : 'Buat 9 Pose & Angle Acak'}
+            <button onClick={calc} disabled={loading || !username.trim()}
+              style={{
+                marginTop:6, height:48, border:0, borderRadius:12,
+                background:'#2563eb', color:'#fff', fontWeight:800,
+                opacity: (loading||!username.trim()) ? .6 : 1
+              }}>
+              {loading ? 'Menghitung…' : 'Calculate Earnings'}
             </button>
+          </div>
+        </Card>
 
-            <div style={{marginTop:14}}>
-              <div style={{display:'grid',gridTemplateColumns:'repeat(3, minmax(0,1fr))',gap:10}}>
-                {imgs.map((src,i)=>(
-                  <div key={i} style={{border:'1px solid #1f2937',borderRadius:10,overflow:'hidden',background:'#0b1220'}}>
-                    <img src={src} alt={'img-'+i} style={{width:'100%',height:'100%',objectFit:'cover'}}/>
-                  </div>
-                ))}
+        {data && (
+          <div style={{display:'grid',gap:12}}>
+            <Card>
+              <div style={{textAlign:'center'}}>
+                <div style={{fontSize:13,letterSpacing:.6,opacity:.7,marginBottom:6}}>
+                  Estimated Earning per video
+                </div>
+                <div style={{fontSize:40,fontWeight:800}}>
+                  ${data.earningMid}
+                </div>
+                <div style={{fontSize:12,opacity:.6}}>
+                  range ${data.earningLow} – ${data.earningHigh}
+                </div>
               </div>
+            </Card>
+
+            <div style={{display:'grid',gridTemplateColumns:'repeat(3,minmax(0,1fr))',gap:12}}>
+              <Card>
+                <div style={{fontSize:13,opacity:.7,marginBottom:6}}>Followers</div>
+                <div style={{fontSize:28,fontWeight:800}}>{data.followersDisplay}</div>
+              </Card>
+              <Card>
+                <div style={{fontSize:13,opacity:.7,marginBottom:6}}>Total Likes</div>
+                <div style={{fontSize:28,fontWeight:800}}>{data.totalLikesDisplay}</div>
+              </Card>
+              <Card>
+                <div style={{fontSize:13,opacity:.7,marginBottom:6}}>Videos</div>
+                <div style={{fontSize:28,fontWeight:800}}>{data.videosDisplay}</div>
+              </Card>
             </div>
-          </section>
-        </div>
-      </div>
+
+            <Card>
+              <div style={{display:'grid',gridTemplateColumns:'repeat(3,minmax(0,1fr))',gap:12}}>
+                <div>
+                  <div style={{fontSize:12,opacity:.7,marginBottom:4}}>Avg Likes / Video</div>
+                  <div style={{fontWeight:800}}>{data.avgLikesDisplay}</div>
+                </div>
+                <div>
+                  <div style={{fontSize:12,opacity:.7,marginBottom:4}}>Engagement Rate (estimasi)</div>
+                  <div style={{fontWeight:800}}>{data.engagementPct}%</div>
+                </div>
+                <div>
+                  <div style={{fontSize:12,opacity:.7,marginBottom:4}}>Views / Video (estimasi)</div>
+                  <div style={{fontWeight:800}}>{data.estViewsDisplay}</div>
+                </div>
+              </div>
+            </Card>
+          </div>
+        )}
+      </section>
+
+      <footer style={{textAlign:'center',padding:'18px 0',color:'#64748b',fontSize:12}}>
+        © {new Date().getFullYear()} Prasetyo – Estimator (demo)
+      </footer>
     </main>
   );
-                                       }
+                  }
